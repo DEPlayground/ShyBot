@@ -18,13 +18,13 @@
 #include <Servo.h>
 #include "ultrasonic.h"
 
-#define ULTRASONIC_TRIGGER 5
-#define ULTRASONIC_ECHO 4
-#define ULTRASONIC_SERVO 9
+#define ULTRASONIC_TRIGGER A1
+#define ULTRASONIC_ECHO A0
+#define ULTRASONIC_SERVO 5
 
-#define POWER_BUTTON 13
-#define POWER_ON_LED 6
-#define POWER_OFF_LED 7
+#define POWER_BUTTON 7
+#define POWER_ON_LED 8
+#define POWER_OFF_LED 9
 
 static const byte eyePins[3] = {
   ULTRASONIC_TRIGGER,

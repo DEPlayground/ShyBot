@@ -26,21 +26,129 @@
 #define POWER_ON_LED 8
 #define POWER_OFF_LED 9
 
+#define MOTOR1 12
+#define MOTOR1_SPEED 3
+
+#define MOTOR2 13
+#define MOTOR2_SPEED 11
+
 static const byte eyePins[3] = {
-  ULTRASONIC_TRIGGER,
-  ULTRASONIC_ECHO,
-  ULTRASONIC_SERVO,
-  };
+    ULTRASONIC_TRIGGER,
+    ULTRASONIC_ECHO,
+    ULTRASONIC_SERVO,
+};
 
 static const byte powerPins[3] = {
-  POWER_BUTTON,
-  POWER_ON_LED,
-  POWER_OFF_LED,
-  };
+    POWER_BUTTON,
+    POWER_ON_LED,
+    POWER_OFF_LED,
+};
 
-static bool running = false;
+static const byte motorsPins[4] = {
+    MOTOR1,
+    MOTOR2,
+    MOTOR1_SPEED,
+    MOTOR2_SPEED,
+};
 
 Servo eye_servo;
+static int eye_position = 0;
+static int crash_distance;
+static bool reverse = false;
+
+void safeDelay(int delay_) {
+    for(int i = 0; i <= delay_; i++) {
+        if(isRunning()) {
+            delay(1);
+        } else {
+            break;
+        }
+    }
+}
+
+void move(byte direction, unsigned char speed=255) {
+    switch(direction) {
+        case 'F':
+            Serial.print("Moving to forward ");
+            digitalWrite(motorsPins[0], LOW);
+            digitalWrite(motorsPins[1], HIGH);
+            break;
+        case 'B':
+            Serial.print("Moving to back ");
+            digitalWrite(motorsPins[0], HIGH);
+            digitalWrite(motorsPins[1], LOW);
+            break;
+        case 'L':
+            Serial.print("Moving to Left ");
+            digitalWrite(motorsPins[0], HIGH);
+            digitalWrite(motorsPins[1], HIGH);
+            break;
+        case 'R':
+            Serial.print("Moving to Right ");
+            digitalWrite(motorsPins[0], LOW);
+            digitalWrite(motorsPins[1], LOW);
+            break;
+        case 'S':
+            Serial.println("Stoping");
+            speed = 0;
+            break;
+    }
+
+    if(speed != 0) {
+        Serial.print("(speed: ");
+        Serial.print(speed);
+        Serial.println(')');
+    }
+
+    analogWrite(motorsPins[2], speed);
+    analogWrite(motorsPins[3], speed);
+}
+
+void changeDirection() {
+    Serial.print("Eye position: ");
+    Serial.println(eye_position);
+    Serial.print("Crash Distance: ");
+    Serial.println(crash_distance);
+
+    if(crash_distance > 0 && crash_distance <= 20) {
+        if(eye_position < 90) {
+            move('L');
+        } else if(eye_position >= 90) {
+            move('R');
+        }
+
+        if(eye_position <= 40 || eye_position >= 130) {
+            safeDelay(1000);
+        } else {
+            safeDelay(2000);
+        }
+
+        move('F');
+    }
+}
+
+bool isRunning() {
+    if(digitalRead(powerPins[0]) == HIGH) {
+        if(digitalRead(powerPins[1]) == HIGH) {
+            Serial.println("Turning off...");
+            digitalWrite(powerPins[1], LOW);
+            digitalWrite(powerPins[2], HIGH);
+        } else {
+            Serial.println("Turning on...");
+            digitalWrite(powerPins[1], HIGH);
+            digitalWrite(powerPins[2], LOW);
+        }
+        delay(500);
+    }
+
+    if(digitalRead(powerPins[1]) == HIGH) {
+        return true;
+    } else {
+        eye_servo.write(90);
+        move('N', 0);
+        return false;
+    }
+}
 
 void setup() {
     pinMode(powerPins[0], INPUT);
@@ -48,6 +156,10 @@ void setup() {
     pinMode(powerPins[2], OUTPUT);
     pinMode(eyePins[0], OUTPUT);
     pinMode(eyePins[1], INPUT);
+
+    for(int i = 0; i <= 3; i++) {
+        pinMode(motorsPins[i], OUTPUT);
+    }
 
     digitalWrite(powerPins[1], LOW);
     digitalWrite(powerPins[2], HIGH);
@@ -59,81 +171,46 @@ void setup() {
 }
 
 void loop() {
-    moveAndCheck(15, 2000);
-
-    for (int p = 15; p < 165; p += 15) {
-        moveAndCheck(p, 100);
-    }
-
-    safeDelay(4000);
-    moveAndCheck(90, 500);
-    moveAndCheck(120, 500);
-    moveAndCheck(60, 5000);
-    moveAndCheck(130, 1000);
-    moveAndCheck(80, 5000);
-    moveAndCheck(120, 2000);
-
-    for (int p = 120; p > 10; p -= 10) {
-        moveAndCheck(p, 250);
-    }
-
-    safeDelay(4000);
-    moveAndCheck(60, 500);
-    moveAndCheck(80, 500);
-    moveAndCheck(60, 5000);
-    moveAndCheck(130, 1000);
-    moveAndCheck(80, 5000);
-
-    for (int p = 15; p < 165; p += 15) {
-        moveAndCheck(p, 300);
-    }
-
-    for (int p = 150; p > 30; p -= 15) {
-        moveAndCheck(p, 300);
-    }
-}
-
-void powerCheck() {
-    if(digitalRead(powerPins[0]) == 1) {
-        if(running) {
-            Serial.println("Turning off...");
-            running = false;
-            digitalWrite(powerPins[1], LOW);
-            digitalWrite(powerPins[2], HIGH);
-        } else {
-            Serial.println("Turning on...");
-            running = true;
-            digitalWrite(powerPins[1], HIGH);
-            digitalWrite(powerPins[2], LOW);
-        }
-        delay(500);
-        eye_servo.write(90);
-    }
-}
-
-void safeDelay(int delay_) {
-    for(int i = 0; i <= delay_; i++) {
-        powerCheck();
-        if(running) {
-            delay(1);
-        } else {
-            break;
-        }
-    }
-}
-
-void moveAndCheck(int position, int delay_) {
-    powerCheck();
-
-    if(!running) {
+    if(isRunning()) {
+        move('F');
+    } else {
+        delay(100);
         return;
     }
 
-    eye_servo.write(position);
-    safeDelay(100);
+    crash_distance = sonar(eyePins);
 
-    Serial.print("Distance: ");
-    Serial.println(sonar(eyePins));
+    if(crash_distance == 0 || crash_distance > 200) {
+        eye_servo.write(eye_position);
+        safeDelay(500);
 
-    safeDelay(delay_);
+        if(reverse) {
+            eye_position -= 90;
+        } else {
+            eye_position += 90;
+        }
+
+        if(eye_position >= 180) {
+            reverse = true;
+        } else if(eye_position <= 0) {
+            reverse = false;
+        }
+    } else if(crash_distance > 0 && crash_distance <= 200) {
+        eye_servo.write(eye_position);
+        safeDelay(100);
+
+        if(reverse) {
+            eye_position -= 30;
+        } else {
+            eye_position += 30;
+        }
+
+        if(eye_position >= 180) {
+            reverse = true;
+        } else if(eye_position <= 0) {
+            reverse = false;
+        }
+
+        changeDirection();
+    }
 }

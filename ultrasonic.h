@@ -17,7 +17,7 @@
 
 #include <Arduino.h>
 
-#define ULTRASONIC_TIMEOUT 1986
+#define ULTRASONIC_TIMEOUT 8000
 
 unsigned long distance;
 unsigned long duration;

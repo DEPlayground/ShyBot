@@ -1,6 +1,6 @@
-/*  
+/*
  *  Lara Maia <dev@lara.click> 2016
- *   
+ *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
@@ -16,7 +16,7 @@
 */
 
 #include <Servo.h>
-#include <Ultrasonic.h>
+#include "ultrasonic.h"
 
 #define ULTRASONIC_TRIGGER 5
 #define ULTRASONIC_ECHO 4
@@ -41,12 +41,13 @@ static const byte powerPins[3] = {
 static bool running = false;
 
 Servo eye_servo;
-Ultrasonic eye(eyePins[0], eyePins[1]);
 
 void setup() {
     pinMode(powerPins[0], INPUT);
     pinMode(powerPins[1], OUTPUT);
     pinMode(powerPins[2], OUTPUT);
+    pinMode(eyePins[0], OUTPUT);
+    pinMode(eyePins[1], INPUT);
 
     digitalWrite(powerPins[1], LOW);
     digitalWrite(powerPins[2], HIGH);
@@ -131,9 +132,8 @@ void moveAndCheck(int position, int delay_) {
     eye_servo.write(position);
     safeDelay(100);
 
-    float cm = eye.convert(eye.timing(), Ultrasonic::CM);
     Serial.print("Distance: ");
-    Serial.println(cm);
+    Serial.println(sonar(eyePins[0],eyePins[1]));
 
     safeDelay(delay_);
 }

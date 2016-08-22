@@ -1,6 +1,6 @@
-/*  
+/*
  *  Lara Maia <dev@lara.click> 2016
- *   
+ *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
@@ -22,17 +22,17 @@
 unsigned long distance;
 unsigned long duration;
 
-long sonar(byte trigger, byte echo) {
-    digitalWrite(trigger, LOW);
+long sonar(const byte eyePins[]) {
+    digitalWrite(eyePins[0], LOW);
     delayMicroseconds(10);
-    digitalWrite(trigger, HIGH);
+    digitalWrite(eyePins[0], HIGH);
     delayMicroseconds(20);
-    digitalWrite(trigger, LOW);
-    
-    duration = pulseIn(echo, HIGH, ULTRASONIC_TIMEOUT);
+    digitalWrite(eyePins[0], LOW);
+
+    duration = pulseIn(eyePins[1], HIGH, ULTRASONIC_TIMEOUT);
     // Believe, 38 is the right value for this case.
     // I calibrated the sensor manually with a measuring tape
     distance = (duration / 2) / 38;
-    
+
     return distance;
 }

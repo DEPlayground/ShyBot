@@ -95,7 +95,7 @@ void loop() {
 
 void powerCheck() {
     if(digitalRead(powerPins[0]) == 1) {
-        if(running == true) {
+        if(running) {
             Serial.println("Turning off...");
             running = false;
             digitalWrite(powerPins[1], LOW);
@@ -114,7 +114,7 @@ void powerCheck() {
 void safeDelay(int delay_) {
     for(int i = 0; i <= delay_; i++) {
         powerCheck();
-        if(running == true) {
+        if(running) {
             delay(1);
         } else {
             break;
@@ -125,7 +125,7 @@ void safeDelay(int delay_) {
 void moveAndCheck(int position, int delay_) {
     powerCheck();
 
-    if(running == false) {
+    if(!running) {
         return;
     }
 
@@ -133,7 +133,7 @@ void moveAndCheck(int position, int delay_) {
     safeDelay(100);
 
     Serial.print("Distance: ");
-    Serial.println(sonar(eyePins[0],eyePins[1]));
+    Serial.println(sonar(eyePins));
 
     safeDelay(delay_);
 }

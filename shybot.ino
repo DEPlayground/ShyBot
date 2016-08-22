@@ -52,7 +52,7 @@ void setup() {
     digitalWrite(powerPins[1], LOW);
     digitalWrite(powerPins[2], HIGH);
 
-    eye_servo.attach(eyePins[2], 660, 2270);
+    eye_servo.attach(eyePins[2], 700, 2200);
     eye_servo.write(90);
 
     Serial.begin(9600);

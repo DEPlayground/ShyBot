@@ -54,23 +54,13 @@ static const byte motorsPins[4] = {
 // FIXME: Use just 1 pin for front_light, please
 static const byte front_light1 = 5;
 static const byte front_light2 = 6;
+static float front_light_voltage = map(2.8, 0, 3.3, 0, 255);
 static byte user_input;
-static float voltage;
 static int eye_position = 0;
 static int crash_distance;
 static bool reverse = false;
 
 Servo eye_servo;
-
-void safeDelay(int delay_) {
-    for(int i = 0; i <= delay_; i++) {
-        if(isRunning()) {
-            delay(1);
-        } else {
-            break;
-        }
-    }
-}
 
 void move(byte direction, unsigned char speed=255) {
     switch(direction) {
@@ -133,18 +123,42 @@ void changeDirection() {
     }
 }
 
-bool isRunning() {
+void autoModeOn() {
+    Serial.println("Turning autoMode on...");
+    digitalWrite(powerPins[1], HIGH);
+    digitalWrite(powerPins[2], LOW);
+    delay(500);
+}
+
+void autoModeOff() {
+    Serial.println("Turning autoMode off...");
+    digitalWrite(powerPins[1], LOW);
+    digitalWrite(powerPins[2], HIGH);
+    delay(500);
+}
+
+bool autoModeSwitch() {
     if(digitalRead(powerPins[0]) == HIGH) {
-        if(digitalRead(powerPins[1]) == HIGH) {
-            Serial.println("Turning off...");
-            digitalWrite(powerPins[1], LOW);
-            digitalWrite(powerPins[2], HIGH);
+        if (digitalRead(powerPins[1]) == HIGH) {
+            Serial.println("autoMode disabled by button");
+            autoModeOff();
         } else {
-            Serial.println("Turning on...");
-            digitalWrite(powerPins[1], HIGH);
-            digitalWrite(powerPins[2], LOW);
+            Serial.println("autoMode enabled by button");
+            autoModeOn();
         }
-        delay(500);
+    }
+
+    switch(user_input) {
+        case 'x':
+            Serial.println("autoMode disabled by serial");
+            autoModeOff();
+            user_input = 255;
+            break;
+        case 'X':
+            Serial.println("autoMode enabled by serial");
+            autoModeOn();
+            user_input = 255;
+            break;
     }
 
     if(digitalRead(powerPins[1]) == HIGH) {
@@ -153,6 +167,16 @@ bool isRunning() {
         eye_servo.write(90);
         move('N', 0);
         return false;
+    }
+}
+
+void safeDelay(int delay_) {
+    for(int i = 0; i <= delay_; i++) {
+        if(autoModeSwitch()) {
+            delay(1);
+        } else {
+            break;
+        }
     }
 }
 
@@ -178,14 +202,13 @@ void setup() {
 
 void loop() {
     user_input = Serial.read();
-    voltage = map(2.5, 0, 3.3, 0, 255);
 
     switch(user_input) {
         case 'W':
             Serial.println("Front light On");
             // FIXME: Replace by a resistor, please
-            analogWrite(front_light1, voltage);
-            analogWrite(front_light2, voltage);
+            analogWrite(front_light1, front_light_voltage);
+            analogWrite(front_light2, front_light_voltage);
             break;
         case 'w':
             Serial.println("Front light Off");
@@ -194,7 +217,7 @@ void loop() {
             break;
     }
 
-    if(isRunning()) {
+    if(autoModeSwitch()) {
         move('F');
     } else {
         delay(100);

@@ -20,11 +20,11 @@
 
 #define ULTRASONIC_TRIGGER A1
 #define ULTRASONIC_ECHO A0
-#define ULTRASONIC_SERVO 5
+#define ULTRASONIC_SERVO 9
 
 #define POWER_BUTTON 7
-#define POWER_ON_LED 8
-#define POWER_OFF_LED 9
+#define POWER_ON_LED A2
+#define POWER_OFF_LED A3
 
 #define MOTOR1 12
 #define MOTOR1_SPEED 3
@@ -51,10 +51,16 @@ static const byte motorsPins[4] = {
     MOTOR2_SPEED,
 };
 
-Servo eye_servo;
+// FIXME: Use just 1 pin for front_light, please
+static const byte front_light1 = 5;
+static const byte front_light2 = 6;
+static byte user_input;
+static float voltage;
 static int eye_position = 0;
 static int crash_distance;
 static bool reverse = false;
+
+Servo eye_servo;
 
 void safeDelay(int delay_) {
     for(int i = 0; i <= delay_; i++) {
@@ -171,6 +177,23 @@ void setup() {
 }
 
 void loop() {
+    user_input = Serial.read();
+    voltage = map(2.5, 0, 3.3, 0, 255);
+
+    switch(user_input) {
+        case 'W':
+            Serial.println("Front light On");
+            // FIXME: Replace by a resistor, please
+            analogWrite(front_light1, voltage);
+            analogWrite(front_light2, voltage);
+            break;
+        case 'w':
+            Serial.println("Front light Off");
+            analogWrite(front_light1, 0);
+            analogWrite(front_light2, 0);
+            break;
+    }
+
     if(isRunning()) {
         move('F');
     } else {

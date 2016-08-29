@@ -55,7 +55,6 @@ static const byte motorsPins[4] = {
 static const byte front_light1 = 5;
 static const byte front_light2 = 6;
 static float front_light_voltage = map(2.8, 0, 3.3, 0, 255);
-static byte user_input;
 static int eye_position = 0;
 static int crash_distance;
 static bool reverse = false;
@@ -123,6 +122,16 @@ void changeDirection() {
     }
 }
 
+bool checkSerialCommand(byte command) {
+    if(Serial.peek() == command) {
+        // Flush serial buffer
+        Serial.read();
+        return true;
+    } else {
+        return false;
+    }
+}
+
 void autoModeOn() {
     Serial.println("Turning autoMode on...");
     digitalWrite(powerPins[1], HIGH);
@@ -148,17 +157,20 @@ bool autoModeSwitch() {
         }
     }
 
-    switch(user_input) {
-        case 'x':
+    while(Serial.available()) {
+        if (checkSerialCommand('x')) {
             Serial.println("autoMode disabled by serial");
             autoModeOff();
-            user_input = 255;
-            break;
-        case 'X':
+            continue;
+        }
+
+        if(checkSerialCommand('X')) {
             Serial.println("autoMode enabled by serial");
             autoModeOn();
-            user_input = 255;
-            break;
+            continue;
+        }
+
+        break;
     }
 
     if(digitalRead(powerPins[1]) == HIGH) {
@@ -201,20 +213,23 @@ void setup() {
 }
 
 void loop() {
-    user_input = Serial.read();
+    while(Serial.available()) {
+        if(checkSerialCommand('w')) {
+            Serial.println("Front light Off");
+            analogWrite(front_light1, 0);
+            analogWrite(front_light2, 0);
+            continue;
+        }
 
-    switch(user_input) {
-        case 'W':
+        if(checkSerialCommand('W')) {
             Serial.println("Front light On");
             // FIXME: Replace by a resistor, please
             analogWrite(front_light1, front_light_voltage);
             analogWrite(front_light2, front_light_voltage);
-            break;
-        case 'w':
-            Serial.println("Front light Off");
-            analogWrite(front_light1, 0);
-            analogWrite(front_light2, 0);
-            break;
+            continue;
+        }
+
+        break;
     }
 
     if(autoModeSwitch()) {

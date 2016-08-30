@@ -3,7 +3,9 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(ShyBot)
 
-set(BOARD arduino:avr:uno)
+########## Configuration ##########
+
+set(BOARD uno)
 set(PORT /dev/ttyACM0)
 set(SKETCH shybot.ino)
 
@@ -19,39 +21,38 @@ set(HARDWARE ${CORE}/hardware)
 set(TOOLS ${HARDWARE}/tools/avr)
 set(LIBRARIES ${CORE}/libraries)
 
+####################################
+
+if(${BOARD} MATCHES "uno")
+    set(FQBN arduino:avr:uno)
+    set(BAUD 115200)
+    set(MCU atmega328p)
+elseif(${BOARD} MATCHES "nano")
+    set(FQBN arduino:avr:nano:cpu=atmega328)
+    set(BAUD 57600)
+    set(MCU atmega328p)
+endif()
+
 add_custom_target(
         build ALL
 
             COMMAND ${BUILDER} -hardware ${HARDWARE}
                                -tools ${TOOLS}
                                -libraries ${LIBRARIES}
-                               -fqbn ${BOARD}
+                               -fqbn ${FQBN}
                                -verbose -warnings all
                                -build-path ${BUILD_DIR}
                                -compile ${SKETCH}
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
 add_custom_target(
-        upload_uno
+        upload
         # -p <mcu> | -c <protocol> | -P <serial port> | -b <speed> | -U <mem type>:w:<sketch.hex>:i | -C <config file>
         COMMAND ${AVRDUDE} -F -v -D
-                           -p atmega328p
+                           -p ${MCU}
                            -c arduino
                            -P ${PORT}
-                           -b 115200
-                           -U flash:w:${BUILD_DIR}/${SKETCH}.hex:i
-                           -C ${AVRDUDE_CONFIG}
-        DEPENDS build
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-
-add_custom_target(
-        upload_nano
-        # -p <mcu> | -c <protocol> | -P <serial port> | -b <speed> | -U <mem type>:w:<sketch.hex>:i | -C <config file>
-        COMMAND ${AVRDUDE} -F -v -D
-                           -p atmega328p
-                           -c arduino
-                           -P ${PORT}
-                           -b 57600
+                           -b ${BAUD}
                            -U flash:w:${BUILD_DIR}/${SKETCH}.hex:i
                            -C ${AVRDUDE_CONFIG}
         DEPENDS build

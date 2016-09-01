@@ -113,9 +113,9 @@ void changeDirection() {
         }
 
         if(eye_position <= 40 || eye_position >= 130) {
-            safeDelay(1000);
+            safeDelay(500);
         } else {
-            safeDelay(2000);
+            safeDelay(1000);
         }
 
         move('F');

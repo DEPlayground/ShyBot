@@ -58,10 +58,11 @@ static float front_light_voltage = map(2.8, 0, 3.3, 0, 255);
 static int eye_position = 0;
 static int crash_distance;
 static bool reverse = false;
+static unsigned char speed = 0;
 
 Servo eye_servo;
 
-void move(byte direction, unsigned char speed=255) {
+void move(byte direction) {
     switch(direction) {
         case 'F':
             Serial.print("Moving to forward ");
@@ -83,20 +84,20 @@ void move(byte direction, unsigned char speed=255) {
             digitalWrite(motorsPins[0], LOW);
             digitalWrite(motorsPins[1], LOW);
             break;
-        case 'S':
-            Serial.println("Stoping");
-            speed = 0;
-            break;
     }
 
-    if(speed != 0) {
+    if(direction == 'S') {
+        Serial.println("Stoping");
+        analogWrite(motorsPins[2], 0);
+        analogWrite(motorsPins[3], 0);
+    } else {
         Serial.print("(speed: ");
         Serial.print(speed);
         Serial.println(')');
-    }
 
-    analogWrite(motorsPins[2], speed);
-    analogWrite(motorsPins[3], speed);
+        analogWrite(motorsPins[2], speed);
+        analogWrite(motorsPins[3], speed);
+    }
 }
 
 void changeDirection() {
@@ -136,11 +137,14 @@ void autoModeOn() {
     Serial.println("Turning autoMode on...");
     digitalWrite(powerPins[1], HIGH);
     digitalWrite(powerPins[2], LOW);
+    speed = 255;
     delay(500);
 }
 
 void autoModeOff() {
     Serial.println("Turning autoMode off...");
+    analogWrite(motorsPins[2], 0);
+    analogWrite(motorsPins[3], 0);
     digitalWrite(powerPins[1], LOW);
     digitalWrite(powerPins[2], HIGH);
     delay(500);
@@ -177,7 +181,6 @@ bool autoModeSwitch() {
         return true;
     } else {
         eye_servo.write(90);
-        move('N', 0);
         return false;
     }
 }
@@ -235,6 +238,48 @@ void loop() {
     if(autoModeSwitch()) {
         move('F');
     } else {
+        while(Serial.available()) {
+            if (checkSerialCommand('F')) {
+                move('F');
+                continue;
+            }
+
+            if (checkSerialCommand('B')) {
+                move('B');
+                continue;
+            }
+
+            if (checkSerialCommand('L')) {
+                move('L');
+                continue;
+            }
+
+            if (checkSerialCommand('R')) {
+                move('R');
+                continue;
+            }
+
+            if(checkSerialCommand('S')) {
+                move('S');
+                continue;
+            }
+
+            for(unsigned char i=0; i <= 9; i++) {
+                if (checkSerialCommand(i+'0')) {
+                    speed = map(i, 0, 10, 0, 255);
+                }
+            }
+
+            if(checkSerialCommand('q')) {
+                speed = 255;
+            }
+
+            // Flush serial buffer for the last check
+            // this prevents infinite loop if receives
+            // an incorrect input on serial
+            Serial.read();
+        }
+
         delay(100);
         return;
     }
